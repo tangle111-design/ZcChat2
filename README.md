@@ -8,6 +8,12 @@
 
 <img width="1045" height="593" alt="SnowShot_2026-03-21_18-54-38" src="https://github.com/user-attachments/assets/49439b92-308f-4ecd-b8cc-a1538153752c" />
 
+[![Docs](https://img.shields.io/badge/文档-docs-0ea5e9?style=for-the-badge)](https://github.com/Zao-chen/ZcChat2/wiki)
+[![GitHub Release](https://img.shields.io/github/v/release/Zao-chen/ZcChat2?color=22c55e&style=for-the-badge)](https://github.com/Zao-chen/ZcChat2/releases)
+[![GitHub Downloads](https://img.shields.io/github/downloads/Zao-chen/ZcChat2/total?color=6366f1&style=for-the-badge)](https://github.com/Zao-chen/ZcChat2/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/Zao-chen/ZcChat2?color=f59e0b&style=for-the-badge)](https://github.com/Zao-chen/ZcChat2/stargazers)
+[![GitHub License](https://img.shields.io/github/license/Zao-chen/ZcChat2?color=ef4444&style=for-the-badge)](LICENSE)
+
 ## 🎯 项目介绍
 
 ### ✨ 核心特性

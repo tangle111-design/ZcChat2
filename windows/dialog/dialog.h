@@ -3,10 +3,13 @@
 
 #include "AiProvider.h"
 #include <QEvent>
+#include <QMediaCaptureSession>
+#include <QMediaRecorder>
 #include <QMoveEvent>
 #include <QStringList>
 #include <QWidget>
 
+class QAudioInput;
 class QAudioOutput;
 class QMediaPlayer;
 class QNetworkAccessManager;
@@ -30,10 +33,15 @@ class Dialog : public QWidget
   public slots:
     void ToggleVisible();
     void VitsGetAndPlay(QString text);
+    void ReloadSpeechInputConfig();
+    bool handleSpeechHotkeyEvent(quint32 vkCode, bool isKeyDown, bool isKeyUp);
 
   private slots:
     void on_pushButton_next_clicked();
     void on_pushButton_history_clicked();
+    void on_pushButton_input_pressed();
+    void on_pushButton_input_released();
+    void on_checkBox_autoInput_toggled(bool checked);
     void rewindToHistoryIndex(int historyIndex);
 
   signals:
@@ -51,6 +59,8 @@ class Dialog : public QWidget
     //鼠标
     void keyPressEvent(QKeyEvent *event) override;
     void keyReleaseEvent(QKeyEvent *event) override;
+    bool nativeEvent(const QByteArray &eventType, void *message,
+                     qintptr *result) override;
     void wheelEvent(QWheelEvent *event) override;
     void moveEvent(QMoveEvent *event) override;
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -77,6 +87,11 @@ class Dialog : public QWidget
     QString m_lastUserInput;
     QString m_streamRawReply;
     QString m_streamDisplayedChinese;
+    bool m_isSpeechRecording = false;
+    bool m_isSpeechRecognizing = false;
+    bool m_globalSpeechHotkeyEnabled = false; //全局录音热键是否启用
+    bool m_globalSpeechHotkeyPressed = false; //当前热键是否处于按下录音中
+    quint32 m_globalSpeechHotkeyNativeKey = 0; //Ela绑定得到的原生按键值
     bool m_streamVitsEnabled = false;
     bool m_streamVitsSentenceSplitEnabled = true;
     int m_streamSynthCursor = 0;
@@ -87,7 +102,19 @@ class Dialog : public QWidget
     QMediaPlayer *m_vitsPlayer = nullptr;
     QAudioOutput *m_vitsAudioOutput = nullptr;
     QTemporaryFile *m_vitsTempFile = nullptr;
+    QMediaRecorder *m_speechRecorder = nullptr;
+    QMediaCaptureSession m_speechCaptureSession;
+    QAudioInput *m_speechAudioInput = nullptr;
     void tryStartNextVitsPlayback();
+    bool submitCurrentInput();
+    void startSpeechRecording();
+    void startSpeechRecordingFromHotkey();
+    void stopSpeechRecording();
+    QString speechRecordFilePath() const;
+    QString recognizeSpeechFromFile(const QString &filePath);
+    QString requestBaiduAccessToken(const QString &apiKey,
+                                    const QString &secretKey);
+    void releaseSpeechHotkeyResources();
 };
 
 #endif //DIALOG_H

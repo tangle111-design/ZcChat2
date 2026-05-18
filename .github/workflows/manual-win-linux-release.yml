@@ -125,10 +125,17 @@ jobs:
           rm -rf dist || true
           mkdir -p dist
 
-          QT_ROOT="$(cd "${Qt6_DIR}/../../.." && pwd)"
-          MACDEPLOYQT="$QT_ROOT/bin/macdeployqt"
-          if [ ! -x "$MACDEPLOYQT" ]; then
-            echo "macdeployqt not found: $MACDEPLOYQT"
+          MACDEPLOYQT="$(command -v macdeployqt || true)"
+          if [ -z "$MACDEPLOYQT" ] || [ ! -x "$MACDEPLOYQT" ]; then
+            if [ -x "${Qt6_DIR}/bin/macdeployqt" ]; then
+              MACDEPLOYQT="${Qt6_DIR}/bin/macdeployqt"
+            elif [ -x "${Qt6_DIR}/../../../bin/macdeployqt" ]; then
+              MACDEPLOYQT="$(cd "${Qt6_DIR}/../../.." && pwd)/bin/macdeployqt"
+            fi
+          fi
+
+          if [ -z "$MACDEPLOYQT" ] || [ ! -x "$MACDEPLOYQT" ]; then
+            echo "macdeployqt not found under Qt6_DIR: ${Qt6_DIR}"
             exit 1
           fi
 

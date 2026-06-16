@@ -55,8 +55,11 @@
      <property name="contextMenuPolicy">
       <enum>Qt::ContextMenuPolicy::DefaultContextMenu</enum>
      </property>
-     <property name="styleSheet">
-      <string notr="true">QMenu {
+      <property name="styleSheet">
+       <string notr="true">QTextEdit {
+    color: #000000;
+}
+QMenu {
     background-color: #ffffff; /* 白色背景 */
     border: none;              /* 无边框 */
     border-radius: 8px;        /* 圆角半径 */
@@ -335,13 +338,16 @@ QPushButton:pressed {
    </item>
    <item row="0" column="0">
     <widget class="QLabel" name="label_name">
-     <property name="font">
-      <font>
-       <family>Microsoft YaHei</family>
-       <pointsize>16</pointsize>
-       <bold>false</bold>
-      </font>
-     </property>
+      <property name="styleSheet">
+       <string notr="true">color: #000000;</string>
+      </property>
+      <property name="font">
+       <font>
+        <family>Microsoft YaHei</family>
+        <pointsize>16</pointsize>
+        <bold>false</bold>
+       </font>
+      </property>
      <property name="text">
       <string notr="true">你</string>
      </property>

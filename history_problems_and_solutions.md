@@ -44,32 +44,72 @@
 
 **现象：** 即使所有 DLL 都在 build 目录中，启动时仍报入口点错误，如 `?setIndent@QLabel@@QEAAXH@Z` 找不到。
 
-**原因：** 系统 PATH 环境变量中包含 `C:\msys64\ucrt64\bin\` 和 `C:\msys64\mingw64\bin\`，其中有 **MinGW 编译的 Qt DLL**。Windows DLL 搜索顺序中，PATH 中的目录优先于 exe 所在目录，导致加载了错误的 Qt 运行时。MinGW 和 MSVC 编译的 Qt 完全不兼容。
+**原因：** 用户 PATH 环境变量中包含 `C:\msys64\ucrt64\bin\` 和 `C:\msys64\mingw64\bin\`，其中有 **MinGW 编译的 Qt DLL**。虽然 Windows DLL 搜索顺序中 exe 同目录优先于 PATH，但由于 CMake 的 POST_BUILD 步骤只复制了 `ZcAiLib.dll`，build 目录中缺少其他 Qt 运行时 DLL，导致系统从 PATH 中加载了 msys64 的 MinGW Qt DLL。MinGW 和 MSVC 编译的 Qt 完全不兼容。
 
-**解决：** 将正确的 Qt 6.8.0 MSVC DLL 和插件复制到 `build/` 目录：
-- `Qt6Core.dll`、`Qt6Gui.dll`、`Qt6Widgets.dll`、`Qt6Network.dll`、`Qt6Multimedia.dll`、`Qt6Svg.dll`
-- `platforms/qwindows.dll`
-- `multimedia/*.dll`
-- `tls/*.dll`
-
-exe 同目录的 DLL 优先于 PATH 搜索，确保加载正确版本。
+**解决：** 从用户 PATH 中移除 msys64 路径（开始菜单搜索"编辑系统环境变量" → 用户变量 → PATH → 删除 `C:\msys64\ucrt64\bin` 和 `C:\msys64\mingw64\bin`）。需要 MinGW 编译时，打开 MSYS2 UCRT64 终端，它会自动设置正确的 PATH。
 
 ---
 
-## 构建命令参考
+## 问题六：清理重建后 build/ 目录残留错误的 DLL
+
+**现象：** 清理重建后启动报 `appendBreadcrumb@ElaBreadcrumbBar` 入口点找不到。
+
+**原因：** `build/` 目录中的 DLL 是之前手动复制的版本，CMake 的 POST_BUILD 步骤**只复制 `ZcAiLib.dll`**，不会覆盖 `elawidgettools.dll`、`ZcWidgetTools.dll`、`ZcJsonLib.dll`。如果之前 build/ 中残留了新编译的 DLL，清理重建后它们不会被替换回原始版本。
+
+**解决：** 清理重建后，手动将 `3rdparty/` 中的原始 DLL 复制到 `build/`：
+```bash
+copy 3rdparty\ElaWidgetTools\bin\elawidgettools.dll build\
+copy 3rdparty\ZcWidgetTools\bin\ZcWidgetTools.dll build\
+copy 3rdparty\ZcJsonLib\bin\ZcJsonLib.dll build\
+```
+
+---
+
+## 问题七：清理重建后 ZcAiLib.dll 被覆盖回旧版本
+
+**现象：** 执行 `rmdir /s /q CMakeFiles` 清理后重新构建，启动时再次报入口点错误。
+
+**原因：** CMake 的 POST_BUILD 步骤会将 `3rdparty/ZcAILib/bin/ZcAiLib.dll` 复制到 `build/`。原始版本的 DLL 是用不同 Qt 版本编译的，清理重建时会被覆盖回去。
+
+**解决：** 每次清理重建后，需要用 Qt 6.8.0 重新编译 ZcAiLib 并替换 `3rdparty/ZcAILib/bin/ZcAiLib.dll` 和 `build/ZcAiLib.dll`。保留 `3rdparty/ZcAILib_src/` 源码目录以方便重新编译。
 
 ```bash
-# 在 VS Developer Command Prompt 中执行
+# 重新编译 ZcAiLib
+cmd /c "vcvarsall.bat x64 && set INCLUDE= && cd 3rdparty/ZcAILib_src && cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=C:/Qt/6.8.0/msvc2022_64 -DCMAKE_DISABLE_FIND_PACKAGE_Vulkan=TRUE && cmake --build build --target ZcAiLib"
+
+# 复制到目标位置
+copy 3rdparty\ZcAILib_src\build\ZcAiLib.dll 3rdparty\ZcAILib\bin\
+copy 3rdparty\ZcAILib_src\build\ZcAiLib.dll build\
+```
+
+---
+
+## 完整重建流程（一键脚本）
+
+清理重建后，按顺序执行以下命令即可恢复：
+
+```bash
+# 1. 进入 VS 开发环境
 "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64
 
-# 编译第三方库（需要清空 INCLUDE 避免 msys64 冲突）
+# 2. 重新编译 ZcAiLib（需要清空 INCLUDE 避免 msys64 冲突）
 set INCLUDE=
+cd 3rdparty\ZcAILib_src
 cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=C:/Qt/6.8.0/msvc2022_64 -DCMAKE_DISABLE_FIND_PACKAGE_Vulkan=TRUE
-cmake --build build --target <target_name>
+cmake --build build --target ZcAiLib
 
-# 编译 ZcChat2 主程序
+# 3. 复制 ZcAiLib
+copy build\ZcAiLib.dll ..\ZcAILib\bin\
+copy build\ZcAiLib.dll ..\..\build\
+
+# 4. 复制其他第三方 DLL 到 build 目录
+cd ..\..
+copy 3rdparty\ElaWidgetTools\bin\elawidgettools.dll build\
+copy 3rdparty\ZcWidgetTools\bin\ZcWidgetTools.dll build\
+copy 3rdparty\ZcJsonLib\bin\ZcJsonLib.dll build\
+
+# 5. 构建 ZcChat2 主程序
 cd build
-rmdir /s /q CMakeFiles
 cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_DISABLE_FIND_PACKAGE_Vulkan=TRUE
 ninja
 ```
